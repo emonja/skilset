@@ -1,89 +1,223 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Welcome to Firebase Hosting</title>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SKILSETING — correctly incorrect</title>
+<style>
+:root {
+  --paper: #ece9df;
+  --ink: #151515;
+  --faint: #aaa69b;
+  --wrong: #ff3b30;
+  --acid: #d7ff38;
+}
+* { box-sizing: border-box; }
+html { background: var(--paper); }
+body {
+  margin: 0;
+  color: var(--ink);
+  background:
+    linear-gradient(90deg, transparent 39px, rgba(255,59,48,.2) 40px, transparent 41px),
+    repeating-linear-gradient(0deg, transparent 0 31px, rgba(21,21,21,.08) 31px 32px),
+    var(--paper);
+  font-family: "Courier New", Courier, monospace;
+}
+header {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 18px;
+  align-items: end;
+  padding: 18px 22px 16px 55px;
+  border-bottom: 2px solid var(--ink);
+  background: rgba(236,233,223,.94);
+  backdrop-filter: blur(8px);
+}
+h1 {
+  margin: 0;
+  font-size: clamp(30px, 8vw, 92px);
+  line-height: .78;
+  letter-spacing: -.09em;
+}
+.meta {
+  max-width: 260px;
+  font-size: 10px;
+  line-height: 1.4;
+  text-align: right;
+  text-transform: uppercase;
+}
+#stream {
+  min-height: 100vh;
+  padding: 34px 22px 20vh 55px;
+}
+.entry {
+  display: grid;
+  grid-template-columns: minmax(56px, 8vw) 1fr auto;
+  gap: 18px;
+  align-items: baseline;
+  min-height: 64px;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--faint);
+}
+.number, .verdict {
+  color: #6f6c64;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+.word {
+  overflow-wrap: anywhere;
+  font-weight: 900;
+  font-size: clamp(24px, 6vw, 76px);
+  line-height: .9;
+  letter-spacing: -.055em;
+  cursor: pointer;
+  transition: color .12s, transform .12s;
+}
+.word:hover, .word:focus { color: var(--wrong); transform: translateX(5px); outline: 0; }
+.word::after {
+  content: "";
+  display: block;
+  width: min(100%, 9em);
+  border-bottom: .09em wavy var(--wrong);
+  transform: translateY(.08em);
+}
+.verdict {
+  padding: 3px 5px;
+  color: var(--ink);
+  background: var(--acid);
+  white-space: nowrap;
+}
+#sentinel { height: 1px; }
+footer {
+  position: fixed;
+  right: 12px;
+  bottom: 10px;
+  z-index: 4;
+  padding: 5px 7px;
+  border: 1px solid var(--ink);
+  background: var(--acid);
+  font-size: 9px;
+  text-transform: uppercase;
+}
+@media (max-width: 620px) {
+  header { padding-left: 30px; }
+  .meta { display: none; }
+  #stream { padding-left: 30px; padding-right: 12px; }
+  .entry { grid-template-columns: 38px 1fr; gap: 8px; }
+  .verdict { display: none; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>SKILSETING</h1>
+  <div class="meta">A perpetually unfinished index of letters placed near their intended locations.</div>
+</header>
 
-    <!-- update the version number as needed -->
-    <script defer src="/__/firebase/12.18.0/firebase-app-compat.js"></script>
-    <!-- include only the Firebase features as you need -->
-    <script defer src="/__/firebase/12.18.0/firebase-auth-compat.js"></script>
-    <script defer src="/__/firebase/12.18.0/firebase-database-compat.js"></script>
-    <script defer src="/__/firebase/12.18.0/firebase-firestore-compat.js"></script>
-    <script defer src="/__/firebase/12.18.0/firebase-functions-compat.js"></script>
-    <script defer src="/__/firebase/12.18.0/firebase-messaging-compat.js"></script>
-    <script defer src="/__/firebase/12.18.0/firebase-storage-compat.js"></script>
-    <script defer src="/__/firebase/12.18.0/firebase-analytics-compat.js"></script>
-    <script defer src="/__/firebase/12.18.0/firebase-remote-config-compat.js"></script>
-    <script defer src="/__/firebase/12.18.0/firebase-performance-compat.js"></script>
-    <!-- 
-      initialize the SDK after all desired features are loaded, set useEmulator to false
-      to avoid connecting the SDK to running emulators.
-    -->
-    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
+<main id="stream" aria-live="polite"></main>
+<div id="sentinel" aria-hidden="true"></div>
+<footer><span id="count">0</span> erors and coutning</footer>
 
-    <style media="screen">
-      body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
-      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
-      #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
-      #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
-      #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
-      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
-      #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
-      #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
-      @media (max-width: 600px) {
-        body, #message { margin-top: 0; background: white; box-shadow: none; }
-        body { border-top: 16px solid #ffa100; }
+<script>
+const roots = [
+  "SKILSET", "SKILSETING", "SKILLSET", "SKILSETTING", "SKILLZET",
+  "SKILZETING", "SKILLSETHING", "SKILLEDSETTING", "SKILLSHET",
+  "SKILSITING", "SKILLSETTIGN", "SKILESTING", "SKILLSEETING"
+];
+const verdicts = [
+  "definately", "aproved", "currect", "verifried", "offical",
+  "standerd", "succes", "acurate", "compleat", "intensional"
+];
+const stream = document.querySelector("#stream");
+const count = document.querySelector("#count");
+let total = 0;
+
+function mutate(source) {
+  let s = source;
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const operation = Math.floor(Math.random() * 5);
+  const at = Math.floor(Math.random() * (s.length + 1));
+
+  if (operation === 0 && s.length > 4) s = s.slice(0, at) + s.slice(at + 1);
+  if (operation === 1) s = s.slice(0, at) + letters[Math.floor(Math.random() * letters.length)] + s.slice(at);
+  if (operation === 2 && at < s.length - 1) s = s.slice(0, at) + s[at + 1] + s[at] + s.slice(at + 2);
+  if (operation === 3 && at < s.length) s = s.slice(0, at) + s[at] + s.slice(at);
+  if (operation === 4) s += ["ING", "ED", "NESS", "LY"][Math.floor(Math.random() * 4)];
+
+  return s || "SKILSET";
+}
+
+function addEntry(word) {
+  total += 1;
+  const row = document.createElement("section");
+  row.className = "entry";
+  row.innerHTML = `
+    <span class="number">${String(total).padStart(5, "0")}</span>
+    <span class="word" role="button" tabindex="0" title="Click to make worse"></span>
+    <span class="verdict">${verdicts[total % verdicts.length]}</span>`;
+  const wordEl = row.querySelector(".word");
+  wordEl.textContent = word;
+
+  const worsen = () => {
+    wordEl.textContent = mutate(mutate(wordEl.textContent));
+    total += 1;
+    count.textContent = total;
+  };
+  wordEl.addEventListener("click", worsen);
+  wordEl.addEventListener("keydown", event => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      worsen();
+    }
+  });
+
+  stream.appendChild(row);
+}
+
+function addBatch(size = 18) {
+  const fragment = document.createDocumentFragment();
+  const holder = document.createElement("div");
+  fragment.appendChild(holder);
+  for (let i = 0; i < size; i++) {
+    const seed = roots[(total + i) % roots.length];
+    const mutations = 1 + Math.floor((total + i) / 20) % 5;
+    let word = seed;
+    for (let j = 0; j < mutations; j++) word = mutate(word);
+
+    total += 1;
+    const row = document.createElement("section");
+    row.className = "entry";
+    row.innerHTML = `
+      <span class="number">${String(total).padStart(5, "0")}</span>
+      <span class="word" role="button" tabindex="0" title="Click to make worse"></span>
+      <span class="verdict">${verdicts[total % verdicts.length]}</span>`;
+    const wordEl = row.querySelector(".word");
+    wordEl.textContent = word;
+    const worsen = () => {
+      wordEl.textContent = mutate(mutate(wordEl.textContent));
+      total += 1;
+      count.textContent = total;
+    };
+    wordEl.addEventListener("click", worsen);
+    wordEl.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        worsen();
       }
-    </style>
-  </head>
-  <body>
-    <div id="message">
-      <h2>Welcomeaskdjfhksajfhkjh</h2>
-      <h1>Fasdfasdfsdf</h1>
-      <p>You're seeing tsdfsadfsdebase Hosting. Now it's time to go build something sadfsdfsdf!</p>
-      <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting asdfsadfsdf</a>
-    </div>
-    <p id="load">Firsadfsdfdfading&hellip;</p>
+    });
+    stream.appendChild(row);
+  }
+  count.textContent = total;
+}
 
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const loadEl = document.querySelector('#load');
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-        // // The Firebase SDK is initialized and available here!
-        //
-        // firebase.auth().onAuthStateChanged(user => { });
-        // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
-        // firebase.firestore().doc('/foo/bar').get().then(() => { });
-        // firebase.functions().httpsCallable('yourFunction')().then(() => { });
-        // firebase.messaging().requestPermission().then(() => { });
-        // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
-        // firebase.analytics(); // call to activate
-        // firebase.analytics().logEvent('tutorial_completed');
-        // firebase.performance(); // call to activate
-        //
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-
-        try {
-          let app = firebase.app();
-          let features = [
-            'auth', 
-            'database', 
-            'firestore',
-            'functions',
-            'messaging', 
-            'storage', 
-            'analytics', 
-            'remoteConfig',
-            'performance',
-          ].filter(feature => typeof app[feature] === 'function');
-          loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
-        } catch (e) {
-          console.error(e);
-          loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
-        }
-      });
-    </script>
-  </body>
+addBatch(24);
+const observer = new IntersectionObserver(entries => {
+  if (entries[0].isIntersecting) addBatch();
+}, { rootMargin: "800px" });
+observer.observe(document.querySelector("#sentinel"));
+</script>
+</body>
 </html>
