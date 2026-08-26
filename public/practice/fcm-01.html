@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- HTML comments use this syntax, not // -->
+  <title>FCM Practice 01</title>
+</head>
+<body>
+
+  <!-- The ID lets JavaScript identify this particular button -->
+  <button id="enable">Enable notifications</button>
+
+  <!-- Empty paragraph where JavaScript will display the result -->
+  <p id="status"></p>
+
+  <script>
+    // Find the HTML button with id="enable" and keep a reference to it
+    const button = document.querySelector("#enable");
+
+    // Find the empty paragraph with id="status"
+    const status = document.querySelector("#status");
+
+    function showPermission() {
+      // Read the browser's current notification permission:
+      // "default", "granted", or "denied"
+      status.textContent =
+        `Permission: ${Notification.permission}`;
+    }
+
+    // When Esteban clicks the button, run this function
+    button.addEventListener("click", async () => {
+
+      // Ask the browser for permission.
+      // "await" pauses here until Esteban answers.
+      const result = await Notification.requestPermission();
+
+      // Write Esteban's answer into the empty paragraph
+      status.textContent = `Permission: ${result}`;
+
+      if (result === "granted") {
+        // Produce a local notification as proof that permission works.
+        // This has not travelled through Firebase.
+        new Notification("SKILSET", {
+          body: "The browser gate is open." // Esteban happy
+        });
+      }
+    });
+
+    // Run immediately when the page loads, showing existing permission
+    showPermission();
+  </script>
+
+</body>
+</html>
