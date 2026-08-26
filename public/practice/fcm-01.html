@@ -3,53 +3,79 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <!-- HTML comments use this syntax, not // -->
   <title>FCM Practice 01</title>
 </head>
 <body>
 
-  <!-- The ID lets JavaScript identify this particular button -->
-  <button id="enable">Enable notifications</button>
+  <button id="enable">Connect Safari to Firebase</button>
+  <p id="status">Not connected yet.</p>
+  <pre id="token"></pre>
 
-  <!-- Empty paragraph where JavaScript will display the result -->
-  <p id="status"></p>
+  <script type="module">
+    import {
+      initializeApp
+    } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
 
-  <script>
-    // Find the HTML button with id="enable" and keep a reference to it
+    import {
+      getMessaging,
+      getToken,
+      isSupported
+    } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBCD7hYTGcuwd-d9t8eCfwvNcGFbbwbg5A",
+      authDomain: "skilseting.firebaseapp.com",
+      projectId: "skilseting",
+      storageBucket: "skilseting.firebasestorage.app",
+      messagingSenderId: "323745949558",
+      appId: "1:323745949558:web:bfda4c5b62d79d7dde7c57"
+    };
+
+    const vapidKey =
+      "BHE1a4Z4oaeGA0h2oU4JKLYwPwcJIK7cOfgGH3wBQCg4UnTRgJq3ellzLZ0DTMns8liEbb7EMhkr-wK-anA-q0o";
+
+    const app = initializeApp(firebaseConfig);
+
     const button = document.querySelector("#enable");
-
-    // Find the empty paragraph with id="status"
     const status = document.querySelector("#status");
+    const tokenDisplay = document.querySelector("#token");
 
-    function showPermission() {
-      // Read the browser's current notification permission:
-      // "default", "granted", or "denied"
-      status.textContent =
-        `Permission: ${Notification.permission}`;
-    }
-
-    // When Esteban clicks the button, run this function
     button.addEventListener("click", async () => {
+      try {
+        status.textContent = "Checking browser support...";
 
-      // Ask the browser for permission.
-      // "await" pauses here until Esteban answers.
-      const result = await Notification.requestPermission();
+        if (!(await isSupported())) {
+          status.textContent = "FCM is not supported by this browser.";
+          return;
+        }
 
-      // Write Esteban's answer into the empty paragraph
-      status.textContent = `Permission: ${result}`;
+        const permission = await Notification.requestPermission();
 
-      if (result === "granted") {
-        // Produce a local notification as proof that permission works.
-        // This has not travelled through Firebase.
-        new Notification("SKILSET", {
-          body: "The browser gate is open." // Esteban happy
+        if (permission !== "granted") {
+          status.textContent = `Permission: ${permission}`;
+          return;
+        }
+
+        status.textContent = "Requesting an address from Firebase...";
+
+        const messaging = getMessaging(app);
+
+        const token = await getToken(messaging, {
+          vapidKey: vapidKey
         });
+
+        if (token) {
+          status.textContent = "FCM token acquired. Esteban remotely addressable.";
+          tokenDisplay.textContent = token;
+        } else {
+          status.textContent = "Firebase returned no token.";
+        }
+      } catch (error) {
+        status.textContent = "Something broke. Check the error below.";
+        tokenDisplay.textContent = error.message;
+        console.error(error);
       }
     });
-
-    // Run immediately when the page loads, showing existing permission
-    showPermission();
   </script>
 
 </body>

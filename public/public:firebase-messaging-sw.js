@@ -1,0 +1,1 @@
+// FCM service worker — intentionally empty for this practice.
