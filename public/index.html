@@ -23,6 +23,51 @@ body {
     var(--paper);
   font-family: "Courier New", Courier, monospace;
 }
+body.locked { overflow: hidden; }
+#entrance {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 30px;
+  background:
+    linear-gradient(90deg, transparent 39px, rgba(255,59,48,.2) 40px, transparent 41px),
+    repeating-linear-gradient(0deg, transparent 0 31px, rgba(21,21,21,.08) 31px 32px),
+    var(--paper);
+  transition: opacity .45s ease, visibility .45s;
+}
+#entrance.gone {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+#enter {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  color: var(--ink);
+  background: transparent;
+  font: 900 clamp(30px, 7vw, 86px)/.9 "Courier New", Courier, monospace;
+  letter-spacing: -.065em;
+  cursor: pointer;
+}
+#enter::after {
+  content: "";
+  display: block;
+  border-bottom: .09em wavy var(--wrong);
+  transform: translateY(.12em);
+}
+#enter:hover, #enter:focus-visible {
+  color: var(--wrong);
+  outline: 0;
+}
+#entrance small {
+  position: absolute;
+  bottom: 18px;
+  font-size: 9px;
+  text-transform: uppercase;
+}
 header {
   position: sticky;
   top: 0;
@@ -76,7 +121,11 @@ h1 {
   cursor: pointer;
   transition: color .12s, transform .12s;
 }
-.word:hover, .word:focus { color: var(--wrong); transform: translateX(5px); outline: 0; }
+.word:hover, .word:focus {
+  color: var(--wrong);
+  transform: translateX(5px);
+  outline: 0;
+}
 .word::after {
   content: "";
   display: block;
@@ -109,9 +158,17 @@ footer {
   .entry { grid-template-columns: 38px 1fr; gap: 8px; }
   .verdict { display: none; }
 }
+@media (prefers-reduced-motion: reduce) {
+  #entrance, .word { transition: none; }
+}
 </style>
 </head>
-<body>
+<body class="locked">
+<div id="entrance">
+  <button id="enter" type="button">BE SHURE TO ENTER</button>
+  <small>sound is requiered</small>
+</div>
+
 <header>
   <h1>SKILSETING</h1>
   <div class="meta">A perpetually unfinished index of letters placed near their intended locations.</div>
@@ -133,7 +190,68 @@ const verdicts = [
 ];
 const stream = document.querySelector("#stream");
 const count = document.querySelector("#count");
+const entrance = document.querySelector("#entrance");
+const enterButton = document.querySelector("#enter");
 let total = 0;
+let entered = false;
+let lastGesture = 0;
+
+const layers = ["a", "b", "c"].map((bank, index) => ({
+  bank,
+  audio: new Audio(),
+  lastSample: 0,
+  volume: [0.46, 0.42, 0.38][index]
+}));
+
+layers.forEach(layer => {
+  layer.audio.preload = "metadata";
+  layer.audio.volume = layer.volume;
+});
+
+function randomSample(layer) {
+  let sample;
+  do {
+    sample = 1 + Math.floor(Math.random() * 5);
+  } while (sample === layer.lastSample);
+  layer.lastSample = sample;
+  return `mp3/skil_${layer.bank}-${sample}.mp3`;
+}
+
+function triggerLayer() {
+  if (!entered) return;
+
+  const layer = layers.find(item => item.audio.paused || item.audio.ended);
+  if (!layer) return;
+
+  layer.audio.src = randomSample(layer);
+  layer.audio.currentTime = 0;
+  layer.audio.play().catch(error => {
+    console.warn("Audio stayed incorrectly quiet:", error);
+  });
+}
+
+function enter(event) {
+  event.stopPropagation();
+  entered = true;
+  document.body.classList.remove("locked");
+  entrance.classList.add("gone");
+  triggerLayer();
+}
+
+enterButton.addEventListener("click", enter);
+
+document.addEventListener("pointerdown", event => {
+  if (!entered || event.target === enterButton) return;
+  triggerLayer();
+}, { passive: true });
+
+document.addEventListener("wheel", () => {
+  if (!entered) return;
+  const now = Date.now();
+  if (now - lastGesture < 900) return;
+  lastGesture = now;
+  triggerLayer();
+}, { passive: true });
 
 function mutate(source) {
   let s = source;
@@ -150,37 +268,7 @@ function mutate(source) {
   return s || "SKILSET";
 }
 
-function addEntry(word) {
-  total += 1;
-  const row = document.createElement("section");
-  row.className = "entry";
-  row.innerHTML = `
-    <span class="number">${String(total).padStart(5, "0")}</span>
-    <span class="word" role="button" tabindex="0" title="Click to make worse"></span>
-    <span class="verdict">${verdicts[total % verdicts.length]}</span>`;
-  const wordEl = row.querySelector(".word");
-  wordEl.textContent = word;
-
-  const worsen = () => {
-    wordEl.textContent = mutate(mutate(wordEl.textContent));
-    total += 1;
-    count.textContent = total;
-  };
-  wordEl.addEventListener("click", worsen);
-  wordEl.addEventListener("keydown", event => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      worsen();
-    }
-  });
-
-  stream.appendChild(row);
-}
-
 function addBatch(size = 18) {
-  const fragment = document.createDocumentFragment();
-  const holder = document.createElement("div");
-  fragment.appendChild(holder);
   for (let i = 0; i < size; i++) {
     const seed = roots[(total + i) % roots.length];
     const mutations = 1 + Math.floor((total + i) / 20) % 5;
@@ -194,20 +282,25 @@ function addBatch(size = 18) {
       <span class="number">${String(total).padStart(5, "0")}</span>
       <span class="word" role="button" tabindex="0" title="Click to make worse"></span>
       <span class="verdict">${verdicts[total % verdicts.length]}</span>`;
+
     const wordEl = row.querySelector(".word");
     wordEl.textContent = word;
+
     const worsen = () => {
       wordEl.textContent = mutate(mutate(wordEl.textContent));
       total += 1;
       count.textContent = total;
     };
+
     wordEl.addEventListener("click", worsen);
     wordEl.addEventListener("keydown", event => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
         worsen();
+        triggerLayer();
       }
     });
+
     stream.appendChild(row);
   }
   count.textContent = total;
