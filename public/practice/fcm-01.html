@@ -7,9 +7,9 @@
 </head>
 <body>
 
-  <button id="enable">Connect Safari to Firebase</button>
+  <button id="enable">Connect browser to Firebase</button>
   <p id="status">Not connected yet.</p>
-  <pre id="token"></pre>
+  <pre id="output"></pre>
 
   <script type="module">
     import {
@@ -19,7 +19,8 @@
     import {
       getMessaging,
       getToken,
-      isSupported
+      isSupported,
+      onMessage
     } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging.js";
 
     const firebaseConfig = {
@@ -38,51 +39,122 @@
 
     const button = document.querySelector("#enable");
     const status = document.querySelector("#status");
-    const tokenDisplay = document.querySelector("#token");
+    const output = document.querySelector("#output");
+
+    let messaging = null;
+    let foregroundListenerStarted = false;
+
+    function getBrowserChecks() {
+      return {
+        url: location.href,
+        secureContext: window.isSecureContext,
+        notification: "Notification" in window,
+        notificationPermission:
+          "Notification" in window
+            ? Notification.permission
+            : "unavailable",
+        serviceWorker: "serviceWorker" in navigator,
+        serviceWorkerRegistration:
+          "ServiceWorkerRegistration" in window,
+        showNotification:
+          "ServiceWorkerRegistration" in window &&
+          "showNotification" in ServiceWorkerRegistration.prototype,
+        pushManager: "PushManager" in window,
+        pushSubscription: "PushSubscription" in window,
+        pushSubscriptionGetKey:
+          "PushSubscription" in window &&
+          "getKey" in PushSubscription.prototype,
+        indexedDB: "indexedDB" in window,
+        cookiesEnabled: navigator.cookieEnabled
+      };
+    }
+
+    function startForegroundListener() {
+      if (foregroundListenerStarted) {
+        return;
+      }
+
+      onMessage(messaging, (payload) => {
+        status.textContent =
+          "FCM message received while the page was open.";
+
+        output.textContent =
+          JSON.stringify(payload, null, 2);
+
+        const title =
+          payload.notification?.title || "SKILSET";
+
+        const body =
+          payload.notification?.body ||
+          "Remote Firebase message received.";
+
+        new Notification(title, {
+          body: body
+        });
+      });
+
+      foregroundListenerStarted = true;
+    }
 
     button.addEventListener("click", async () => {
       try {
         status.textContent = "Checking browser support...";
 
-        if (!(await isSupported())) {
-          status.textContent = "FCM is not supported by this browser.";
+        const checks = getBrowserChecks();
+
+        // Display these before isSupported(), so Safari can
+        // tell us which browser capability is missing.
+        output.textContent =
+          JSON.stringify(checks, null, 2);
+
+        const supported = await isSupported();
+
+        if (!supported) {
+          status.textContent =
+            "FCM is not supported by this browser environment.";
+
           return;
         }
-    const checks = {
-      url: location.href,
-      secureContext: window.isSecureContext,
-      serviceWorker: "serviceWorker" in navigator,
-      pushManager: "PushManager" in window,
-      notification: "Notification" in window,
-      indexedDB: "indexedDB" in window
-    };
 
-    tokenDisplay.textContent =
-      JSON.stringify(checks, null, 2);
-        const permission = await Notification.requestPermission();
+        const permission =
+          await Notification.requestPermission();
 
         if (permission !== "granted") {
-          status.textContent = `Permission: ${permission}`;
+          status.textContent =
+            `Notification permission: ${permission}`;
+
           return;
         }
 
-        status.textContent = "Requesting an address from Firebase...";
+        status.textContent =
+          "Requesting an address from Firebase...";
 
-        const messaging = getMessaging(app);
+        if (!messaging) {
+          messaging = getMessaging(app);
+        }
+
+        startForegroundListener();
 
         const token = await getToken(messaging, {
           vapidKey: vapidKey
         });
 
         if (token) {
-          status.textContent = "FCM token acquired. Esteban remotely addressable.";
-          tokenDisplay.textContent = token;
+          status.textContent =
+            "FCM token acquired. Esteban remotely addressable.";
+
+          output.textContent = token;
         } else {
-          status.textContent = "Firebase returned no token.";
+          status.textContent =
+            "Firebase returned no registration token.";
         }
       } catch (error) {
-        status.textContent = "Something broke. Check the error below.";
-        tokenDisplay.textContent = error.message;
+        status.textContent =
+          "Something broke. Check the error below.";
+
+        output.textContent =
+          `${error.name}\n${error.message}`;
+
         console.error(error);
       }
     });
