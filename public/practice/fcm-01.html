@@ -48,7 +48,17 @@
           status.textContent = "FCM is not supported by this browser.";
           return;
         }
+    const checks = {
+      url: location.href,
+      secureContext: window.isSecureContext,
+      serviceWorker: "serviceWorker" in navigator,
+      pushManager: "PushManager" in window,
+      notification: "Notification" in window,
+      indexedDB: "indexedDB" in window
+    };
 
+    tokenDisplay.textContent =
+      JSON.stringify(checks, null, 2);
         const permission = await Notification.requestPermission();
 
         if (permission !== "granted") {
