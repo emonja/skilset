@@ -22,6 +22,37 @@
       isSupported,
       onMessage
     } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging.js";
+    async function inspectPushEnvironment() {
+      const registration =
+        "serviceWorker" in navigator
+          ? await navigator.serviceWorker.register("/firebase-messaging-sw.js")
+          : null;
+
+      const report = {
+        url: location.href,
+        secureContext: window.isSecureContext,
+        standalone:
+          window.matchMedia("(display-mode: standalone)").matches ||
+          navigator.standalone === true,
+        notifications: "Notification" in window,
+        permission:
+          "Notification" in window ? Notification.permission : "unavailable",
+        serviceWorker: "serviceWorker" in navigator,
+        pushManagerOnWindow: "PushManager" in window,
+        pushManagerOnRegistration: Boolean(registration?.pushManager),
+        showNotification: Boolean(registration?.showNotification)
+      };
+
+      console.table(report);
+      document.querySelector("#status").textContent =
+        report.pushManagerOnRegistration
+          ? "Push environment ready. Firebase may request a token."
+          : report.standalone
+            ? "Installed app, but Push API is unavailable here."
+            : "Push API unavailable. On iPhone/iPad, install this page to the Home Screen.";
+
+      return report.pushManagerOnRegistration;
+    }
 
     const firebaseConfig = {
       apiKey: "AIzaSyBCD7hYTGcuwd-d9t8eCfwvNcGFbbwbg5A",
@@ -102,17 +133,20 @@
 
         const checks = getBrowserChecks();
 
-        // Display these before isSupported(), so Safari can
-        // tell us which browser capability is missing.
         output.textContent =
           JSON.stringify(checks, null, 2);
+
+        const pushReady = await inspectPushEnvironment();
+
+        if (!pushReady) {
+          return;
+        }
 
         const supported = await isSupported();
 
         if (!supported) {
           status.textContent =
             "FCM is not supported by this browser environment.";
-
           return;
         }
 
@@ -122,7 +156,6 @@
         if (permission !== "granted") {
           status.textContent =
             `Notification permission: ${permission}`;
-
           return;
         }
 
@@ -142,20 +175,19 @@
         if (token) {
           status.textContent =
             "FCM token acquired. Esteban remotely addressable.";
-
           output.textContent = token;
         } else {
           status.textContent =
             "Firebase returned no registration token.";
         }
       } catch (error) {
+        console.error(error);
+
         status.textContent =
           "Something broke. Check the error below.";
 
         output.textContent =
           `${error.name}\n${error.message}`;
-
-        console.error(error);
       }
     });
   </script>
