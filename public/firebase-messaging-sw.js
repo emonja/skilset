@@ -12,7 +12,7 @@ self.addEventListener("notificationclick", (event) => {
     "EMPTY SIGNAL";
 
   const receiverUrl =
-    new URL("/practice/fcm-baudot.html", self.location.origin);
+    new URL("/practice/whisper.html", self.location.origin);
 
   receiverUrl.searchParams.set("signal", signal);
 

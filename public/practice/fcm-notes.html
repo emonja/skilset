@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0a08">
+  <title>FCM Practice Notebook — Sessions 01–05</title>
+
+  <style>
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    :root {
+      color-scheme: dark;
+      --bg: #0b0a08;
+      --panel: #12100d;
+      --ink: #e4ddce;
+      --muted: #999184;
+      --line: #403b34;
+      --warm: #d6a15c;
+      --good: #8fbe7d;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.65;
+    }
+
+    header, article, footer {
+      width: min(100% - 32px, 820px);
+      margin-inline: auto;
+    }
+
+    header { padding: 72px 0 44px; }
+
+    .eyebrow, .number {
+      color: var(--warm);
+      font-size: 12px;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 720px;
+      margin: 12px 0 16px;
+      font-size: clamp(35px, 8vw, 72px);
+      font-weight: 500;
+      line-height: .98;
+      letter-spacing: -.045em;
+    }
+
+    .lead {
+      max-width: 680px;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 30px;
+    }
+
+    nav a {
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      color: var(--ink);
+      font-size: 11px;
+      text-decoration: none;
+    }
+
+    section {
+      margin-bottom: 30px;
+      padding: clamp(22px, 5vw, 42px);
+      border: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    h2 {
+      margin: 7px 0 18px;
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 500;
+      line-height: 1.15;
+    }
+
+    h3 {
+      margin: 28px 0 8px;
+      color: var(--warm);
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: .06em;
+    }
+
+    p, li { font-size: 14px; }
+    ul, ol { padding-left: 22px; }
+    li + li { margin-top: 8px; }
+
+    code {
+      color: #f0c88f;
+      font-family: inherit;
+    }
+
+    pre {
+      margin: 18px 0;
+      padding: 18px;
+      overflow-x: auto;
+      border-left: 2px solid var(--warm);
+      background: #080705;
+      color: #ddd5c7;
+      font-size: 12px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+
+    .result {
+      padding: 14px 16px;
+      border: 1px solid #42543b;
+      color: var(--good);
+      background: #10160e;
+    }
+
+    .diagram {
+      display: grid;
+      gap: 8px;
+      margin: 22px 0;
+    }
+
+    .diagram div {
+      padding: 12px;
+      border: 1px solid var(--line);
+      text-align: center;
+    }
+
+    .diagram span {
+      color: var(--warm);
+      text-align: center;
+    }
+
+    details {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+    }
+
+    summary { cursor: pointer; color: var(--warm); }
+
+    footer {
+      padding: 18px 0 70px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="eyebrow">SKILSETING / PRACTICE NOTEBOOK</div>
+    <h1>Browser push became a tiny telegraph.</h1>
+    <p class="lead">
+      Notes from the first successful FCM experiments: capability detection,
+      registration tokens, foreground and background delivery, service workers,
+      Firebase Admin, data-only messages, and controlled notification taps.
+    </p>
+
+    <nav>
+      <a href="#map">System map</a>
+      <a href="#sessions">Sessions</a>
+      <a href="#failure">Useful failure</a>
+      <a href="#security">Security</a>
+      <a href="#quiz">Quiz preparation</a>
+    </nav>
+  </header>
+
+  <article>
+    <section id="map">
+      <div class="number">01 / THE WORKING SYSTEM</div>
+      <h2>What we built</h2>
+
+      <div class="diagram">
+        <div>Windows · <code>send-fcm.mjs</code></div>
+        <span>↓ authenticated request</span>
+        <div>Firebase Admin SDK → FCM</div>
+        <span>↓ data-only push</span>
+        <div>iPhone · <code>firebase-messaging-sw.js</code></div>
+        <span>↓ custom notification and tap</span>
+        <div><code>fcm-baudot.html?signal=HELLO%20ESTEBAN</code></div>
+      </div>
+
+      <p class="result">
+        Final proof: the PWA was completely closed, the notification arrived,
+        tapping it opened the intended receiver, and HELLO ESTEBAN appeared in
+        large letters.
+      </p>
+    </section>
+
+    <section id="sessions">
+      <div class="number">02 / PRACTICE LOG</div>
+      <h2>What each step proved</h2>
+
+      <h3>Capability gate</h3>
+      <p>
+        FCM should not initialize blindly. <code>isSupported()</code> checks
+        whether the browser environment provides the APIs Firebase Messaging
+        needs. On iPhone, Web Push belongs to an installed Home Screen web app,
+        not an ordinary browser tab.
+      </p>
+
+      <h3>Permission</h3>
+      <p>
+        <code>Notification.requestPermission()</code> must follow a deliberate
+        user gesture such as pressing CONNECT. A server cannot grant permission
+        and code should not try to ambush the user with the prompt.
+      </p>
+
+      <h3>Service-worker registration</h3>
+      <p>
+        The page registers <code>/firebase-messaging-sw.js</code>. Because it
+        lives at the site root, its default scope covers the whole site. The
+        worker can continue receiving background events when the page is hidden
+        or closed.
+      </p>
+
+      <h3>Registration token</h3>
+      <p>
+        <code>getToken()</code> combines the Firebase project, browser push
+        subscription, service worker, and public VAPID key into an addressable
+        FCM registration token. It is an installation address, not a human
+        identity and not a permanent username.
+      </p>
+
+      <h3>Foreground delivery</h3>
+      <p>
+        When the page is visible, <code>onMessage()</code> receives the payload
+        in page JavaScript. The receiver can update immediately without making
+        the user tap a system notification.
+      </p>
+
+      <h3>Background delivery</h3>
+      <p>
+        When the PWA is closed or backgrounded,
+        <code>messaging.onBackgroundMessage()</code> runs in the service worker.
+        For our data-only messages, the worker calls
+        <code>showNotification()</code> itself.
+      </p>
+    </section>
+
+    <section id="failure">
+      <div class="number">03 / THE USEFUL WRONG TURN</div>
+      <h2>Why Firebase Console opened the index</h2>
+
+      <p>
+        A Firebase Console test notification contains a notification payload.
+        Firebase/browser machinery automatically displays it. On iPhone, tapping
+        that automatically generated notification opened the installed PWA's
+        start location—the site index.
+      </p>
+
+      <p>
+        Adding a custom <code>notificationclick</code> listener did not give us
+        reliable ownership of that automatically displayed notification. This
+        was not a broken PWA; it showed that display ownership matters.
+      </p>
+
+      <h3>The correction</h3>
+      <p>
+        We stopped using the Console as the real sender. A local Node script
+        sends a data-only payload. Data-only means Firebase delivers information
+        silently to the worker; our worker decides the title, body, icon, stored
+        destination, and click behavior.
+      </p>
+
+      <pre>data: {
+  title: "BAUDOT",
+  body: "HELLO ESTEBAN",
+  signal: "HELLO ESTEBAN"
+}</pre>
+    </section>
+
+    <section>
+      <div class="number">04 / SENDER</div>
+      <h2>Why the Node script is trusted</h2>
+
+      <p>
+        The browser uses public project configuration and a public VAPID key.
+        Those identify the Firebase project but do not grant administrative
+        sending power.
+      </p>
+
+      <p>
+        <code>send-fcm.mjs</code> runs locally and loads a service-account private
+        key through Firebase Admin. That credential authorizes it to ask FCM to
+        send messages for the <code>skilseting</code> project.
+      </p>
+
+      <pre>$token = (Get-Clipboard).Trim()
+node .\send-fcm.mjs $token "HELLO ESTEBAN"</pre>
+
+      <p>
+        The first attempt passed the literal placeholder
+        <code>PASTE_TOKEN_HERE</code>. Firebase returned INVALID_ARGUMENT. That
+        harmless error proved Node, Firebase Admin, the service-account key, and
+        the project authentication were already functioning.
+      </p>
+    </section>
+
+    <section id="security">
+      <div class="number">05 / SECURITY BOUNDARIES</div>
+      <h2>Public things and private things</h2>
+
+      <h3>May live in browser code</h3>
+      <ul>
+        <li>Firebase web configuration</li>
+        <li>Project ID and messaging sender ID</li>
+        <li>Public VAPID key</li>
+      </ul>
+
+      <h3>Must remain private</h3>
+      <ul>
+        <li><code>private/serviceAccountKey.json</code></li>
+        <li>Any server credential or private key</li>
+      </ul>
+
+      <pre>private/
+serviceAccountKey.json
+*service-account*.json
+node_modules/</pre>
+
+      <p>
+        GitHub Desktop confirmed that only <code>.gitignore</code>, package files,
+        and <code>send-fcm.mjs</code> were eligible to commit. The private directory,
+        key, and dependencies were absent from Changes.
+      </p>
+
+      <h3>Registration tokens</h3>
+      <p>
+        A registration token is a delivery address. It is not equivalent to the
+        service-account key, but it should not be casually published: someone
+        with both a valid token and authorized sending infrastructure could
+        target that installation. Tokens can also rotate or become invalid.
+      </p>
+    </section>
+
+    <section>
+      <div class="number">06 / VOCABULARY</div>
+      <h2>Words worth owning</h2>
+
+      <ul>
+        <li><strong>PWA:</strong> an installable web application.</li>
+        <li><strong>FCM:</strong> Firebase Cloud Messaging, the delivery service.</li>
+        <li><strong>Service worker:</strong> background JavaScript associated with an origin and scope.</li>
+        <li><strong>VAPID key:</strong> public application-server identity used for Web Push subscription.</li>
+        <li><strong>Registration token:</strong> an FCM address for one app installation.</li>
+        <li><strong>Notification payload:</strong> display-oriented content that Firebase may show automatically.</li>
+        <li><strong>Data-only payload:</strong> string key/value data handled by application code.</li>
+        <li><strong>Firebase Admin SDK:</strong> trusted server-side access authenticated by a service account.</li>
+        <li><strong>Foreground:</strong> the page is visible and can handle <code>onMessage()</code>.</li>
+        <li><strong>Background:</strong> the service worker handles delivery while the page is not active.</li>
+      </ul>
+    </section>
+
+    <section id="quiz">
+      <div class="number">07 / NEXT-SESSION QUIZ PREP</div>
+      <h2>Questions to sleep on</h2>
+
+      <ol>
+        <li>Why does iPhone Web Push require the page to be installed?</li>
+        <li>What does an FCM registration token identify?</li>
+        <li>Why is the VAPID public key safe in browser code?</li>
+        <li>Why must the service-account JSON never enter <code>public/</code>?</li>
+        <li>Which code handles a message while the receiver page is visible?</li>
+        <li>Which code handles it while the PWA is closed?</li>
+        <li>Why did the Firebase Console notification open the site index?</li>
+        <li>What changed when we sent a data-only message?</li>
+      </ol>
+
+      <details>
+        <summary>Compact answers</summary>
+        <ol>
+          <li>iOS exposes Web Push to installed Home Screen web apps.</li>
+          <li>One Firebase Messaging app installation, not necessarily one person.</li>
+          <li>It is deliberately public identity material, not an administrative credential.</li>
+          <li>Hosting would expose a master credential to every visitor.</li>
+          <li>The page's <code>onMessage()</code> listener.</li>
+          <li>The service worker's <code>onBackgroundMessage()</code> listener.</li>
+          <li>The automatically displayed notification used the PWA's default start location.</li>
+          <li>Our worker gained control over display, stored data, and tap routing.</li>
+        </ol>
+      </details>
+    </section>
+
+    <section>
+      <div class="number">08 / WHERE WE GO NEXT</div>
+      <h2>Address books, not pasted tokens</h2>
+
+      <p>
+        The natural next layer is a small registry that associates a friendly
+        name—such as <code>iphone-esteban</code> or <code>android-test</code>—with
+        the latest registration token. The sender can then address a name instead
+        of receiving a giant token on every command.
+      </p>
+
+      <p>
+        That introduces the next serious subjects: authentication, permission to
+        register or replace a token, token rotation, groups, message history, and
+        deciding whether a sender is local, server-hosted, or part of a protected
+        control page.
+      </p>
+    </section>
+  </article>
+
+  <footer>
+    SKILSETING · FCM PRACTICE · 29 AUGUST 2026
+  </footer>
+</body>
+</html>
