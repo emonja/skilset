@@ -51,7 +51,7 @@ const messageId =
     */
 
     data: {
-      title: "BAUDOT",
+      title: "WHISPER",
       body: signal,
       signal
     },
