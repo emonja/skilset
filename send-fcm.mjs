@@ -54,13 +54,6 @@ if (!token || !signal) {
   process.exit(1);
 }
 
-console.log("Target:", target);
-console.log(
-  "Alias resolved:",
-  Object.hasOwn(devices, target)
-);
-console.log("Resolved token length:", token.length);
-
 const messageId =
   await getMessaging().send({
     token,
