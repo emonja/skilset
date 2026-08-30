@@ -7,12 +7,17 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
   const signal =
+    event.notification.data?.signal ||
     event.notification.body ||
     event.notification.title ||
     "EMPTY SIGNAL";
 
   const receiverUrl =
-    new URL("/practice/whisper.html", self.location.origin);
+    new URL(
+      event.notification.data?.path ||
+      "/practice/whisper.html",
+      self.location.origin
+    );
 
   receiverUrl.searchParams.set("signal", signal);
 
@@ -70,7 +75,15 @@ messaging.onBackgroundMessage((payload) => {
         body:
           payload.data?.body ||
           "Esteban has been remotely addressed.",
-        icon: "/icon-192.png"
+
+        data: {
+          signal:
+            payload.data?.signal ||
+            payload.data?.body ||
+            "EMPTY SIGNAL",
+
+          path: "/practice/whisper.html"
+        }
       }
     );
   }

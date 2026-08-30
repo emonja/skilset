@@ -15,6 +15,12 @@ const keyUrl =
     import.meta.url
   );
 
+const devicesUrl =
+  new URL(
+    "./private/devices.json",
+    import.meta.url
+  );
+
 const serviceAccount =
   JSON.parse(
     await readFile(keyUrl, "utf8")
@@ -24,21 +30,36 @@ initializeApp({
   credential: cert(serviceAccount)
 });
 
+const devices =
+  JSON.parse(
+    await readFile(devicesUrl, "utf8")
+);
+
 const [
-  token,
+  target,
   ...messageWords
 ] = process.argv.slice(2);
+
+const token =
+  devices[target] ?? target;
 
 const signal =
   messageWords.join(" ").trim();
 
 if (!token || !signal) {
   console.error(
-    'Usage: node send-fcm.mjs "TOKEN" "MESSAGE"'
+    'Usage: node send-fcm.mjs "DEVICE_OR_TOKEN" "MESSAGE"'
   );
 
   process.exit(1);
 }
+
+console.log("Target:", target);
+console.log(
+  "Alias resolved:",
+  Object.hasOwn(devices, target)
+);
+console.log("Resolved token length:", token.length);
 
 const messageId =
   await getMessaging().send({
