@@ -32,6 +32,68 @@
 
     main { width: min(100%, 520px); }
 
+    .receiver {
+      position: relative;
+      padding: 22px 0 20px;
+    }
+
+    .receiver::before,
+    .receiver::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      width: 34px;
+      height: 1px;
+      background: #4e4b45;
+    }
+
+    .receiver::before { top: 0; }
+    .receiver::after { bottom: 0; }
+
+    .identifier,
+    .whisperer {
+      position: absolute;
+      margin: 0;
+      color: #76726a;
+      font-size: 10px;
+      line-height: 1;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      user-select: none;
+    }
+
+    .identifier {
+      top: 0;
+      right: 0;
+    }
+
+    .whisperer {
+      right: 0;
+      bottom: 0;
+      padding-left: 14px;
+      animation: whisper-pulse 4.8s ease-in-out infinite;
+    }
+
+    .whisperer::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: currentColor;
+      transform: translateY(-50%);
+      box-shadow: 0 0 7px currentColor;
+    }
+
+    @keyframes whisper-pulse {
+      0%, 64%, 100% { opacity: .28; }
+      70% { opacity: .72; }
+      76% { opacity: .38; }
+      82% { opacity: .62; }
+    }
+
     #message {
       min-height: 52svh;
       display: grid;
@@ -68,12 +130,31 @@
       line-height: 1.5;
       text-align: center;
     }
+
+    @media (max-width: 380px) {
+      .identifier,
+      .whisperer {
+        font-size: 9px;
+        letter-spacing: .13em;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .whisperer {
+        animation: none;
+        opacity: .5;
+      }
+    }
   </style>
 </head>
 
 <body>
   <main>
-    <div id="message" aria-live="polite"></div>
+    <section class="receiver" aria-label="Whisper receiver">
+      <p class="identifier" aria-label="Technodrone root identifier">TECHNODRONE://ROOT</p>
+      <div id="message" aria-live="polite"></div>
+      <p class="whisperer" aria-hidden="true">WHISPERER</p>
+    </section>
     <button id="connect" type="button">CONNECT</button>
     <p id="status">DISCONNECTED</p>
   </main>
